@@ -1,4 +1,5 @@
 import pygame
+import random
 
 # 初始化pygame
 pygame.init()
@@ -33,6 +34,13 @@ def your_score(score):
     value = score_font.render("得分: " + str(score), True, black)
     dis.blit(value, [0, 0])
 
+# 新增：显示游戏时间
+def display_game_time(game_time):
+    time_text = score_font.render("Time: " + str(int(game_time)) + "s", True, black) # 使用与得分一致的字体
+    # 将时间显示在屏幕右上角，您可以根据需要调整位置 [display_width - 150, 0]
+    time_rect = time_text.get_rect(topright=(display_width - 10, 10)) # 距离右上角各10像素
+    dis.blit(time_text, time_rect)
+
 # 绘制蛇
 def our_snake(snake_block, snake_list):
     # 绘制蛇头（不同颜色）
@@ -58,6 +66,8 @@ def message(msg, color):
 def gameLoop():
     game_over = False
     game_close = False
+
+    start_ticks = pygame.time.get_ticks()
 
     # 初始化蛇的位置
     x1 = display_width / 2
@@ -158,6 +168,9 @@ def gameLoop():
         # 绘制蛇和显示得分
         our_snake(snake_block, snake_List)
         your_score(Length_of_snake - 1)
+
+        seconds_elapsed = (pygame.time.get_ticks() - start_ticks) / 1000  # 转换为秒
+        display_game_time(seconds_elapsed)
 
         pygame.display.update()
 
