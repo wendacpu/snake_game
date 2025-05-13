@@ -1,0 +1,14 @@
+# JetBrains IDE (PyCharm, IntelliJ)
+.idea/
+*.iml
+
+# macOS
+.DS_Store
+
+# Python virtual environment (如果你用了虚拟环境，建议加上)
+# venv/
+# .venv/
+
+# Python cache files
+*.pyc
+__pycache__/
