@@ -11,6 +11,7 @@ red = (213, 55, 80)
 green = (0, 255, 0)
 blue = (50, 153, 213)
 gray = (169, 169, 169)  # 障碍物颜色
+yellow = (255, 255, 0)  # 按钮颜色
 
 # 设置显示窗口
 display_width = 600
@@ -26,9 +27,11 @@ snake_block = 20  # 增大蛇的大小，使其更容易看见
 snake_speed = 10  # 降低速度，使游戏更容易控制
 
 # 设置字体
+font_name = pygame.font.match_font('Pristina')
 font_style = pygame.font.SysFont("bahnschrift", 25)
 score_font = pygame.font.SysFont("comicsansms", 35)
-
+title_font = pygame.font.SysFont("bahnschrift", 70)
+button_font = pygame.font.SysFont("bahnschrift", 40)
 
 # 蛇类
 class Snake:
@@ -110,6 +113,9 @@ class Snake:
         # 增加蛇的长度
         self.length += 1
 
+    def reset(self):
+        self.__init__(display_width / 2, display_height / 2)
+
 
 # 食物类
 class Food:
@@ -172,107 +178,232 @@ def message(msg, color):
     mesg = font_style.render(msg, True, color)
     dis.blit(mesg, [display_width / 6, display_height / 3])
 
+# 绘制开始按钮
+def draw_start_button(mouse_pos=None):
+    button_rect = pygame.Rect(display_width // 2 - 100, display_height // 2 + 50, 200, 60)
 
-# 游戏主循环
-def gameLoop():
-    game_over = False
-    game_close = False
+    # 检查鼠标是否悬停在按钮上
+    if mouse_pos and button_rect.collidepoint(mouse_pos):
+        button_color = (255, 215, 0)  # 悬停时颜色变亮
+        border_color = (0, 0, 200)  # 边框颜色变深
+    else:
+        button_color = yellow  # 默认颜色
+        border_color = black  # 默认边框颜色
 
-    start_ticks = pygame.time.get_ticks()
+    pygame.draw.rect(dis, button_color, button_rect, border_radius=10)
+    pygame.draw.rect(dis, border_color, button_rect, 2, border_radius=10)
 
-    # 初始化蛇
+    button_text = button_font.render("START", True, black)  # 文字改为"START"
+    text_rect = button_text.get_rect(center=button_rect.center)
+    dis.blit(button_text, text_rect)
+
+    return button_rect
+
+# 显示开始页面
+def show_start_screen():
+    waiting = True
+    while waiting:
+        mouse_pos = pygame.mouse.get_pos()  # 获取鼠标位置
+        dis.fill(white)
+
+        # 绘制游戏标题
+        title_text = title_font.render("SNAKE GAME", True, blue)
+        title_rect = title_text.get_rect(center=(display_width // 2, display_height // 4))
+        dis.blit(title_text, title_rect)
+
+        # 绘制提示信息
+        hint_text = font_style.render("Press S or click the button to start the game.", True, black)
+        hint_rect = hint_text.get_rect(center=(display_width // 2, display_height // 2 - 20))
+        dis.blit(hint_text, hint_rect)
+
+        # 绘制开始按钮（传递鼠标位置）
+        button_rect = draw_start_button(mouse_pos)
+
+        # 处理事件
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_s:
+                    return
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if button_rect.collidepoint(event.pos):
+                    return
+
+        pygame.display.update()
+        clock.tick(15)
+
+# 初始化游戏
+def init_game():
     snake = Snake(display_width / 2, display_height / 2)
-
-    # 创建障碍物
     obstacles = []
     for i in range(5):  # 创建5个障碍物
         obstacle = Obstacle()
         obstacles.append(obstacle)
-
-    # 创建食物
     food = Food()
-    # 确保食物不在障碍物上
-    food.respawn([obstacle for obstacle in obstacles], snake.body)
+    food.respawn(obstacles, snake.body)
+    return snake, obstacles, food, pygame.time.get_ticks(), 0, 0
 
-    while not game_over:
+game_active = True
 
-        while game_close == True:
-            dis.fill(white)
-            message("游戏结束! 按Q退出或按C重新开始", red)
-            your_score(snake.length - 1)
-            pygame.display.update()
+# 定义游戏结束界面
+def end_game(final_score, final_time):
+    while True:
+        dis.fill(white)
 
-            for event in pygame.event.get():
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_q:
-                        game_over = True
-                        game_close = False
-                    if event.key == pygame.K_c:
-                        gameLoop()
+        game_font_over = pygame.font.Font(font_name, 50)
+        game_font_restart = pygame.font.Font(font_name, 30)
+        game_message_over = game_font_over.render("GAME OVER", True, red)
+        game_message_over_rect = game_message_over.get_rect(center=(300, 100))
+        dis.blit(game_message_over, game_message_over_rect)
+
+        game_message_restart = game_font_restart.render("Press RESTART or QUIT", True, (64, 64, 64))
+        game_message_restart_rect = game_message_restart.get_rect(center=(300, 150))
+        dis.blit(game_message_restart, game_message_restart_rect)
+
+        # 显示得分和时间
+        your_score(final_score)
+        display_game_time(final_time)
+
+        # 按钮
+        restart_btn = pygame.Rect(display_width // 2 - 150, 250, 100, 40)
+        quit_btn = pygame.Rect(display_width // 2 + 50, 250, 100, 40)
+
+        pygame.draw.rect(dis, yellow, restart_btn, border_radius=10)
+        pygame.draw.rect(dis, yellow, quit_btn, border_radius=10)
+
+        restart_text = font_style.render("RESTART", True, black)
+        quit_text = font_style.render("QUIT", True, black)
+
+        dis.blit(restart_text, restart_text.get_rect(center=restart_btn.center))
+        dis.blit(quit_text, quit_text.get_rect(center=quit_btn.center))
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                game_over = True
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    snake.change_direction("LEFT")
-                elif event.key == pygame.K_RIGHT:
-                    snake.change_direction("RIGHT")
-                elif event.key == pygame.K_UP:
-                    snake.change_direction("UP")
-                elif event.key == pygame.K_DOWN:
-                    snake.change_direction("DOWN")
-
-        # 检查是否撞到边界
-        if snake.check_collision_with_boundaries():
-            game_close = True
-
-        # 移动蛇
-        snake.move()
-
-        # 清空屏幕
-        dis.fill(white)
-
-        # 绘制食物
-        food.draw()
-
-        # 绘制障碍物
-        for obstacle in obstacles:
-            obstacle.draw()
-
-        # 检查是否撞到自己
-        if snake.check_collision_with_self():
-            game_close = True
-
-        # 检查是否撞到障碍物
-        for obstacle in obstacles:
-            if snake.check_collision_with_obstacle(obstacle):
-                game_close = True
-
-        # 绘制蛇和显示得分
-        snake.draw()
-        your_score(snake.length - 1)
-
-        # 显示游戏时间
-        seconds_elapsed = (pygame.time.get_ticks() - start_ticks) / 1000  # 转换为秒
-        display_game_time(seconds_elapsed)
+                pygame.quit()
+                exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if restart_btn.collidepoint(event.pos):
+                    return "restart"
+                elif quit_btn.collidepoint(event.pos):
+                    return "quit"
 
         pygame.display.update()
+        clock.tick(15)
 
-        # 检查是否吃到食物
-        if snake.check_collision_with_food(food):
-            # 生成新的食物位置
-            food.respawn([obstacle for obstacle in obstacles], snake.body)
-            # 蛇增长
-            snake.grow()
 
-        # 控制游戏速度
+# 主游戏流程
+def main():
+    global game_active
+    final_score = 0
+    final_time = 0
+    # 显示开始页面
+    show_start_screen()
+
+    # 初始化游戏
+    snake, obstacles, food, start_ticks, final_score, final_time = init_game()
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if game_active == True:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LEFT:
+                        snake.change_direction("LEFT")
+                    elif event.key == pygame.K_RIGHT:
+                        snake.change_direction("RIGHT")
+                    elif event.key == pygame.K_UP:
+                        snake.change_direction("UP")
+                    elif event.key == pygame.K_DOWN:
+                        snake.change_direction("DOWN")
+            else:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        # 重置游戏
+                        snake.reset()
+                        food.respawn(obstacles, snake.body)
+                        game_active = True
+                        start_ticks = pygame.time.get_ticks()
+                        final_score = 0
+                        final_time = 0
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    # 检查是否点击了"按空格键重新开始"的区域
+                    if display_width // 6 <= event.pos[0] <= display_width * 5 // 6 and \
+                            display_height // 3 <= event.pos[1] <= display_height // 3 + 30:
+                        snake.reset()
+                        food.respawn(obstacles, snake.body)
+                        game_active = True
+                        start_ticks = pygame.time.get_ticks()
+                        final_score = 0
+                        final_time = 0
+
+        # 游戏逻辑
+        if game_active:
+            # 蛇移动
+            snake.move()
+
+            # 填充背景色
+            dis.fill(white)
+
+            # 绘制食物
+            food.draw()
+
+            # 绘制障碍物
+            for obstacle in obstacles:
+                obstacle.draw()
+
+            # 绘制蛇和显示得分
+            snake.draw()
+            current_score = snake.length - 3
+            your_score(current_score)
+
+            # 显示游戏时间
+            seconds_elapsed = (pygame.time.get_ticks() - start_ticks) / 1000
+            display_game_time(seconds_elapsed)
+
+            # 检查是否吃到食物
+            if snake.check_collision_with_food(food):
+                # 生成新的食物位置
+                food.respawn(obstacles, snake.body)
+                # 蛇增长
+                snake.grow()
+
+            # 检查是否撞到自己
+            if snake.check_collision_with_self():
+                game_active = False
+                final_score = current_score
+                final_time = seconds_elapsed
+
+            # 检查是否撞到边界
+            if snake.check_collision_with_boundaries():
+                game_active = False
+                final_score = current_score
+                final_time = seconds_elapsed
+
+            # 检查是否撞到障碍物
+            for obstacle in obstacles:
+                if snake.check_collision_with_obstacle(obstacle):
+                    game_active = False
+                    final_score = current_score
+                    final_time = seconds_elapsed
+        else:
+            action = end_game(final_score, final_time)
+            if action == "restart":
+                snake, obstacles, food, start_ticks, final_score, final_time = init_game()
+                game_active = True
+            elif action == "quit":
+                pygame.quit()
+                exit()
+
+            your_score(final_score)
+            display_game_time(final_time)
+
+        pygame.display.update()
         clock.tick(snake_speed)
 
-    # 退出pygame
-    pygame.quit()
-    quit()
 
-
-# 启动游戏
-gameLoop()
+if __name__ == "__main__":
+    main()
