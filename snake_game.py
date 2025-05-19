@@ -33,6 +33,24 @@ score_font = pygame.font.SysFont("comicsansms", 35)
 title_font = pygame.font.SysFont("bahnschrift", 70)
 button_font = pygame.font.SysFont("bahnschrift", 40)
 
+# 加载音效文件
+try:
+    eat_sound = pygame.mixer.Sound(r'eat.mp3')  # 吃食物音效
+    crash_sound = pygame.mixer.Sound(r'crash.mp3')  # 碰撞音效
+    start_sound = pygame.mixer.Sound(r'start.wav')  # 开始游戏音效
+    game_over_sound = pygame.mixer.Sound(r'game_over.wav')  # 结束游戏音效
+    button_click_sound = pygame.mixer.Sound(r'click.wav')  # 按钮点击音效
+    background_music = r'bg.wav'  # 背景音乐
+except:
+    print("警告: 未能加载所有音效文件，游戏将继续但没有音效")
+    # 创建空音效对象以避免报错
+    eat_sound = pygame.mixer.Sound(buffer=bytearray(0))
+    crash_sound = pygame.mixer.Sound(buffer=bytearray(0))
+    start_sound = pygame.mixer.Sound(buffer=bytearray(0))
+    game_over_sound = pygame.mixer.Sound(buffer=bytearray(0))
+    button_click_sound = pygame.mixer.Sound(buffer=bytearray(0))
+    background_music = None
+
 # 蛇类
 class Snake:
     def __init__(self, x, y):
@@ -168,7 +186,6 @@ def your_score(score):
 # 显示游戏时间
 def display_game_time(game_time):
     time_text = score_font.render("Time: " + str(int(game_time)) + "s", True, black)  # 使用与得分一致的字体
-    # 将时间显示在屏幕右上角，您可以根据需要调整位置 [display_width - 150, 0]
     time_rect = time_text.get_rect(topright=(display_width - 10, 10))  # 距离右上角各10像素
     dis.blit(time_text, time_rect)
 
@@ -202,6 +219,7 @@ def draw_start_button(mouse_pos=None):
 # 显示开始页面
 def show_start_screen():
     waiting = True
+    start_sound.play()  # 播放开始界面音效
     while waiting:
         mouse_pos = pygame.mouse.get_pos()  # 获取鼠标位置
         dis.fill(white)
@@ -226,9 +244,12 @@ def show_start_screen():
                 exit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_s:
+                    button_click_sound.play()  # 播放按钮点击音效
                     return
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if button_rect.collidepoint(event.pos):
+                    button_click_sound.play()  # 播放按钮点击音效
+                    pygame.time.delay(400)  # 添加短暂延迟让音效播放完整
                     return
 
         pygame.display.update()
@@ -249,6 +270,9 @@ game_active = True
 
 # 定义游戏结束界面
 def end_game(final_score, final_time):
+    pygame.mixer.music.stop()  # 停止主体背景音乐
+    pygame.mixer.stop()  # 确保之前的音效都停止
+    game_over_sound.play()  # 播放游戏结束部分音效
     while True:
         dis.fill(white)
 
@@ -285,8 +309,12 @@ def end_game(final_score, final_time):
                 exit()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if restart_btn.collidepoint(event.pos):
+                    button_click_sound.play()  # 播放按钮点击音效
+                    pygame.time.delay(400)  # 添加短暂延迟让音效播放完整
                     return "restart"
                 elif quit_btn.collidepoint(event.pos):
+                    button_click_sound.play()  # 播放按钮点击音效
+                    pygame.time.delay(400)  # 添加短暂延迟让音效播放完整
                     return "quit"
 
         pygame.display.update()
@@ -303,6 +331,11 @@ def main():
 
     # 初始化游戏
     snake, obstacles, food, start_ticks, final_score, final_time = init_game()
+
+    # 开始播放背景音乐
+    if background_music:
+        pygame.mixer.music.load(background_music)
+        pygame.mixer.music.play(-1)
 
     while True:
         for event in pygame.event.get():
@@ -366,6 +399,7 @@ def main():
 
             # 检查是否吃到食物
             if snake.check_collision_with_food(food):
+                eat_sound.play()  # 播放吃食物音效
                 # 生成新的食物位置
                 food.respawn(obstacles, snake.body)
                 # 蛇增长
@@ -373,12 +407,14 @@ def main():
 
             # 检查是否撞到自己
             if snake.check_collision_with_self():
+                crash_sound.play()  # 播放碰撞音效
                 game_active = False
                 final_score = current_score
                 final_time = seconds_elapsed
 
             # 检查是否撞到边界
             if snake.check_collision_with_boundaries():
+                crash_sound.play()  # 播放碰撞音效
                 game_active = False
                 final_score = current_score
                 final_time = seconds_elapsed
@@ -386,14 +422,18 @@ def main():
             # 检查是否撞到障碍物
             for obstacle in obstacles:
                 if snake.check_collision_with_obstacle(obstacle):
+                    crash_sound.play()  # 播放碰撞音效
                     game_active = False
                     final_score = current_score
                     final_time = seconds_elapsed
+
         else:
             action = end_game(final_score, final_time)
             if action == "restart":
                 snake, obstacles, food, start_ticks, final_score, final_time = init_game()
                 game_active = True
+                if background_music:
+                    pygame.mixer.music.play(-1)
             elif action == "quit":
                 pygame.quit()
                 exit()
