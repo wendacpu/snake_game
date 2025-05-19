@@ -14,8 +14,8 @@ gray = (169, 169, 169)  # 障碍物颜色
 yellow = (255, 255, 0)  # 按钮颜色
 
 # 设置显示窗口
-display_width = 600
-display_height = 400
+display_width = 800
+display_height = 600
 dis = pygame.display.set_mode((display_width, display_height))
 pygame.display.set_caption('贪吃蛇游戏')
 
@@ -279,11 +279,11 @@ def end_game(final_score, final_time):
         game_font_over = pygame.font.Font(font_name, 50)
         game_font_restart = pygame.font.Font(font_name, 30)
         game_message_over = game_font_over.render("GAME OVER", True, red)
-        game_message_over_rect = game_message_over.get_rect(center=(300, 100))
+        game_message_over_rect = game_message_over.get_rect(center=(display_width//2, display_height//2-100))
         dis.blit(game_message_over, game_message_over_rect)
 
         game_message_restart = game_font_restart.render("Press RESTART or QUIT", True, (64, 64, 64))
-        game_message_restart_rect = game_message_restart.get_rect(center=(300, 150))
+        game_message_restart_rect = game_message_restart.get_rect(center=(display_width//2, display_height//2-50))
         dis.blit(game_message_restart, game_message_restart_rect)
 
         # 显示得分和时间
@@ -291,8 +291,8 @@ def end_game(final_score, final_time):
         display_game_time(final_time)
 
         # 按钮
-        restart_btn = pygame.Rect(display_width // 2 - 150, 250, 100, 40)
-        quit_btn = pygame.Rect(display_width // 2 + 50, 250, 100, 40)
+        restart_btn = pygame.Rect(display_width // 2 - 150, 350, 100, 40)
+        quit_btn = pygame.Rect(display_width // 2 + 50, 350, 100, 40)
 
         pygame.draw.rect(dis, yellow, restart_btn, border_radius=10)
         pygame.draw.rect(dis, yellow, quit_btn, border_radius=10)
