@@ -262,7 +262,7 @@ class Obstacle:
 
 # 显示得分
 def your_score(score):
-    value = score_font.render("得分: " + str(score), True, black)
+    value = score_font.render("score: " + str(score), True, black)
     dis.blit(value, [0, 0])
 
 
@@ -483,11 +483,6 @@ def main():
             # 显示游戏时间
             seconds_elapsed = (pygame.time.get_ticks() - start_ticks) / 1000
             display_game_time(seconds_elapsed)
-
-            # 检查是否吃到食物
-            print(f"蛇头坐标: ({snake.x}, {snake.y}) 类型: ({type(snake.x)}, {type(snake.y)})")
-            print(f"食物坐标: ({food.x}, {food.y}) 类型: ({type(food.x)}, {type(food.y)})")
-            # --- 调试代码结束 ---
 
             # 检查是否吃到食物
             collision_result = snake.check_collision_with_food(food)  # 先保存结果
