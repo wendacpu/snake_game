@@ -506,7 +506,7 @@ def main():
                 final_score = current_score
                 final_time = seconds_elapsed
 
-            # # 检查是否撞到边界
+            # 检查是否撞到边界
             # if snake.check_collision_with_boundaries():
             #     crash_sound.play()  # 播放碰撞音效
             #     game_active = False
