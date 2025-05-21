@@ -96,6 +96,16 @@ class Snake:
         self.x += self.x_change
         self.y += self.y_change
 
+        # 边界穿越逻辑
+        if self.x >= display_width:
+            self.x = 0
+        elif self.x < 0:
+            self.x = display_width - snake_block
+        if self.y >= display_height:
+            self.y = 0
+        elif self.y < 0:
+            self.y = display_height - snake_block
+
         # 更新蛇的头部
         self.head = []
         self.head.append(self.x)
@@ -147,11 +157,11 @@ class Snake:
                 return True
         return False
 
-    def check_collision_with_boundaries(self):
-        # 检查是否撞到边界
-        if self.x >= display_width or self.x < 0 or self.y >= display_height or self.y < 0:
-            return True
-        return False
+    # def check_collision_with_boundaries(self):
+    #     # 检查是否撞到边界
+    #     if self.x >= display_width or self.x < 0 or self.y >= display_height or self.y < 0:
+    #         return True
+    #     return False
 
     def check_collision_with_obstacle(self, obstacle):
         # 检查是否撞到障碍物
@@ -496,12 +506,12 @@ def main():
                 final_score = current_score
                 final_time = seconds_elapsed
 
-            # 检查是否撞到边界
-            if snake.check_collision_with_boundaries():
-                crash_sound.play()  # 播放碰撞音效
-                game_active = False
-                final_score = current_score
-                final_time = seconds_elapsed
+            # # 检查是否撞到边界
+            # if snake.check_collision_with_boundaries():
+            #     crash_sound.play()  # 播放碰撞音效
+            #     game_active = False
+            #     final_score = current_score
+            #     final_time = seconds_elapsed
 
             # 检查是否撞到障碍物
             for obstacle in obstacles:
