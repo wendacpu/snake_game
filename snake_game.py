@@ -14,8 +14,8 @@ gray = (169, 169, 169)  # 障碍物颜色
 yellow = (255, 255, 0)  # 按钮颜色
 
 # 设置显示窗口
-display_width = 800
-display_height = 600
+display_width = 1200
+display_height = 800
 dis = pygame.display.set_mode((display_width, display_height))
 pygame.display.set_caption('贪吃蛇游戏')
 
@@ -23,8 +23,8 @@ pygame.display.set_caption('贪吃蛇游戏')
 clock = pygame.time.Clock()
 
 # 蛇的大小和速度
-snake_block = 20  # 增大蛇的大小，使其更容易看见
-snake_speed = 10  # 降低速度，使游戏更容易控制
+snake_block = 40  # 增大蛇的大小，使其更容易看见
+snake_speed = 8  # 降低速度，使游戏更容易控制
 
 # 设置字体
 font_name = pygame.font.match_font('Pristina')
@@ -51,6 +51,15 @@ except:
     button_click_sound = pygame.mixer.Sound(buffer=bytearray(0))
     background_music = None
 
+#载入背景图和半透明覆盖层
+background = pygame.image.load('pictures/background/bgd5/bgd5_alpha.png').convert_alpha()
+#background = pygame.image.load('pictures/background/bgd2/bg2_ori._alpha.png').convert_alpha()
+#background = pygame.image.load('pictures/background/bgd1/backgrs_alpha.jpg').convert_alpha()
+background = pygame.transform.scale(background, (display_width, display_height))
+#overlay = pygame.Surface((display_width, display_height), pygame.SRCALPHA)
+#overlay.fill((255, 255, 255, 200))
+
+# 蛇类
 # 蛇类
 class Snake:
     def __init__(self, x, y):
@@ -66,6 +75,21 @@ class Snake:
         self.head.append(x)
         self.head.append(y)
         self.body.append(self.head.copy())
+
+        #加载图片
+        self.head_img = pygame.image.load('pictures/Snake_head/Snake_head6.png').convert_alpha()
+        self.body_img = pygame.image.load('pictures/Snake_body/Snake_body1.png').convert_alpha()
+        self.head_img = pygame.transform.scale(self.head_img, (snake_block, snake_block))
+        self.body_img = pygame.transform.scale(self.body_img, (snake_block, snake_block))
+
+        # 存储不同方向的蛇头
+        self.head_directions = {
+            "RIGHT": self.head_img,
+            "LEFT": pygame.transform.rotate(self.head_img, 180),
+            "UP": pygame.transform.rotate(self.head_img, 90),
+            "DOWN": pygame.transform.rotate(self.head_img, 270)
+        }
+
 
     def move(self):
         # 更新蛇的位置
@@ -96,15 +120,25 @@ class Snake:
             self.y_change = snake_block
             self.x_change = 0
 
+    def current_direction(self):  #新增一个方法来判断蛇头方向
+        if self.x_change > 0: return "RIGHT"
+        if self.x_change < 0: return "LEFT"
+        if self.y_change < 0: return "UP"
+        if self.y_change > 0: return "DOWN"
+
     def draw(self):
-        # 绘制蛇头（不同颜色）
+        # 绘制蛇头（不同颜色，自动匹配方向）
         if len(self.body) > 0:
             head = self.body[-1]
-            pygame.draw.rect(dis, blue, [head[0], head[1], snake_block, snake_block])
+
+            direction = self.current_direction()
+            dis.blit(self.head_directions[direction], (self.head[0], self.head[1]))
+            #pygame.draw.rect(dis, blue, [head[0], head[1], snake_block, snake_block])
 
         # 绘制蛇身
         for segment in self.body[:-1]:
-            pygame.draw.rect(dis, green, [segment[0], segment[1], snake_block, snake_block])
+            dis.blit(self.body_img, (segment[0], segment[1]))
+            #pygame.draw.rect(dis, gray, [segment[0], segment[1], snake_block, snake_block])
 
     def check_collision_with_self(self):
         # 检查是否撞到自己
@@ -121,7 +155,11 @@ class Snake:
 
     def check_collision_with_obstacle(self, obstacle):
         # 检查是否撞到障碍物
-        return self.head == obstacle.position
+        #return self.head == obstacle.position
+        head_rect = pygame.Rect(self.head[0], self.head[1],snake_block, snake_block)
+        obstacle_rect = obstacle.get_rect()
+        return head_rect.colliderect(obstacle_rect)
+
 
     def check_collision_with_food(self, food):
         # 检查是否吃到食物
@@ -131,9 +169,6 @@ class Snake:
         # 增加蛇的长度
         self.length += 1
 
-    def reset(self):
-        self.__init__(display_width / 2, display_height / 2)
-
 
 # 食物类
 class Food:
@@ -141,6 +176,11 @@ class Food:
         self.x = 0
         self.y = 0
         self.position = [self.x, self.y]
+
+        #加载Food图片
+        self.image = pygame.image.load('pictures/food/food.png').convert_alpha()
+        self.image = pygame.transform.scale(self.image, (snake_block, snake_block))
+
         self.respawn()
 
     def respawn(self, obstacles=None, snake_body=None):
@@ -158,11 +198,25 @@ class Food:
 
     def draw(self):
         # 绘制食物
-        pygame.draw.rect(dis, red, [self.x, self.y, snake_block, snake_block])
+        dis.blit(self.image, (self.x, self.y))
+        #pygame.draw.rect(dis, red, [self.x, self.y, snake_block, snake_block])
 
 
 # 障碍物类
 class Obstacle:
+
+    # 类变量，存储所有可能的障碍物图片
+    obstacle_images = [
+        'pictures/obstacles/obstacle1.png',
+        'pictures/obstacles/obstacle2.png',
+        'pictures/obstacles/obstacle3.png',
+        'pictures/obstacles/obstacle4.png',
+        'pictures/obstacles/obstacle5.png',
+    ]
+
+    # 记录已使用的图片索引，确保不重复
+    used_images = []
+
     def __init__(self, x=None, y=None):
         if x is None or y is None:
             self.x = round(random.randrange(0, display_width - snake_block) / snake_block) * snake_block
@@ -172,9 +226,28 @@ class Obstacle:
             self.y = y
         self.position = [self.x, self.y]
 
+
+        # 随机选择一个未使用过的图片
+        if not Obstacle.used_images:
+            # 第一次使用时，重置并打乱顺序
+            Obstacle.used_images = list(range(len(Obstacle.obstacle_images)))
+            random.shuffle(Obstacle.used_images)
+
+        img_index = Obstacle.used_images.pop()
+        img_path = Obstacle.obstacle_images[img_index]
+
+        # 加载障碍物图片
+        self.img = pygame.image.load(img_path).convert_alpha()
+        self.img = pygame.transform.scale(self.img, (snake_block *2, snake_block*2))
+
+    def get_rect(self):
+        #获取其矩形与snake_head的矩形做碰撞检测
+        return pygame.Rect(self.x, self.y, snake_block*2, snake_block*2)
+
     def draw(self):
         # 绘制障碍物
-        pygame.draw.rect(dis, gray, [self.x, self.y, snake_block, snake_block])
+        dis.blit(self.img, (self.x, self.y))
+        #pygame.draw.rect(dis, black, [self.x, self.y, snake_block, snake_block])
 
 
 # 显示得分
@@ -257,13 +330,15 @@ def show_start_screen():
 
 # 初始化游戏
 def init_game():
-    snake = Snake(display_width / 2, display_height / 2)
+    startX = (display_width // 2 // snake_block) * snake_block
+    startY = (display_height // 2 // snake_block) * snake_block
+    snake = Snake(float(startX), float(startY))
     obstacles = []
     for i in range(5):  # 创建5个障碍物
         obstacle = Obstacle()
         obstacles.append(obstacle)
     food = Food()
-    food.respawn(obstacles, snake.body)
+    food.respawn([obstacle for obstacle in obstacles], snake.body)
     return snake, obstacles, food, pygame.time.get_ticks(), 0, 0
 
 game_active = True
@@ -291,8 +366,8 @@ def end_game(final_score, final_time):
         display_game_time(final_time)
 
         # 按钮
-        restart_btn = pygame.Rect(display_width // 2 - 150, 350, 100, 40)
-        quit_btn = pygame.Rect(display_width // 2 + 50, 350, 100, 40)
+        restart_btn = pygame.Rect(display_width // 2 - 150, 550, 100, 40)
+        quit_btn = pygame.Rect(display_width // 2 + 50, 550, 100, 40)
 
         pygame.draw.rect(dis, yellow, restart_btn, border_radius=10)
         pygame.draw.rect(dis, yellow, quit_btn, border_radius=10)
@@ -378,8 +453,10 @@ def main():
             # 蛇移动
             snake.move()
 
-            # 填充背景色
+            # 清空屏幕,绘制背景图
             dis.fill(white)
+            dis.blit(background, (0, 0))
+            # dis.blit(overlay, (0, 0))
 
             # 绘制食物
             food.draw()
@@ -398,10 +475,17 @@ def main():
             display_game_time(seconds_elapsed)
 
             # 检查是否吃到食物
-            if snake.check_collision_with_food(food):
+            print(f"蛇头坐标: ({snake.x}, {snake.y}) 类型: ({type(snake.x)}, {type(snake.y)})")
+            print(f"食物坐标: ({food.x}, {food.y}) 类型: ({type(food.x)}, {type(food.y)})")
+            # --- 调试代码结束 ---
+
+            # 检查是否吃到食物
+            collision_result = snake.check_collision_with_food(food)  # 先保存结果
+            if collision_result:  # 使用保存的结果
+                print("调试: 检测到碰撞!")  # 确认此行是否执行
                 eat_sound.play()  # 播放吃食物音效
                 # 生成新的食物位置
-                food.respawn(obstacles, snake.body)
+                food.respawn([obstacle for obstacle in obstacles], snake.body)
                 # 蛇增长
                 snake.grow()
 
