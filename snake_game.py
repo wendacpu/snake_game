@@ -206,6 +206,18 @@ class Food:
                 self.y = round(random.randrange(0, display_height - snake_block) / snake_block) * snake_block
                 self.position = [self.x, self.y]
 
+        # 检查是否与障碍物冲突
+        valid = True
+        if obstacles:
+            for obstacle in obstacles:
+                obstacle_rect = obstacle.get_rect()
+                food_rect = pygame.Rect(self.x, self.y, snake_block, snake_block)
+                if food_rect.colliderect(obstacle_rect):
+                    valid = False
+                    break
+                if valid and (snake_body is None or self.position not in snake_body):
+                    break
+
     def draw(self):
         # 绘制食物
         dis.blit(self.image, (self.x, self.y))
@@ -259,12 +271,66 @@ class Obstacle:
         dis.blit(self.img, (self.x, self.y))
         #pygame.draw.rect(dis, black, [self.x, self.y, snake_block, snake_block])
 
+    def respawn(self, snake_head, snake_direction, obstacles, snake_body, food_position):
+        """改进后的生成逻辑"""
+        start_time = pygame.time.get_ticks()  # 防止无限循环
+        max_attempts = 50  # 最大尝试次数
+
+        for _ in range(max_attempts):
+            # 生成候选位置
+            self.x = round(random.randrange(0, display_width - snake_block * 2) / snake_block) * snake_block
+            self.y = round(random.randrange(0, display_height - snake_block * 2) / snake_block) * snake_block
+            self.position = [self.x, self.y]
+
+            # ---- 安全检测 ----
+            safe = True
+
+            # 规则1：远离其他障碍物（至少2个蛇身距离）
+            for other in obstacles:
+                if self != other:
+                    dx = abs(self.x - other.x)
+                    dy = abs(self.y - other.y)
+                    if dx < snake_block * 2 and dy < snake_block * 2:
+                        safe = False
+                        break
+
+            # 规则2：不在蛇前进方向的前方区域（预测未来3步）
+            if snake_direction == "RIGHT":
+                danger_zone = pygame.Rect(snake_head[0] + snake_block, snake_head[1] - snake_block * 3, snake_block * 5,
+                                          snake_block * 7)
+            elif snake_direction == "LEFT":
+                danger_zone = pygame.Rect(snake_head[0] - snake_block * 5, snake_head[1] - snake_block * 3,
+                                          snake_block * 5, snake_block * 7)
+            elif snake_direction == "UP":
+                danger_zone = pygame.Rect(snake_head[0] - snake_block * 3, snake_head[1] - snake_block * 5,
+                                          snake_block * 7, snake_block * 5)
+            else:  # DOWN
+                danger_zone = pygame.Rect(snake_head[0] - snake_block * 3, snake_head[1] + snake_block, snake_block * 7,
+                                          snake_block * 5)
+
+            if danger_zone.collidepoint((self.x, self.y)):
+                safe = False
+
+            # 规则3：不与蛇身/食物重叠
+            if any(segment == self.position for segment in snake_body) or food_position == self.position:
+                safe = False
+
+            # 规则4：不在屏幕边缘（留出逃生通道）
+            if (self.x < snake_block * 2 or self.x > display_width - snake_block * 3 or
+                    self.y < snake_block * 2 or self.y > display_height - snake_block * 3):
+                safe = False
+
+            if safe:
+                return
+
+        # 如果超过最大尝试次数，允许放宽规则4
+        self.x = round(random.randrange(snake_block * 2, display_width - snake_block * 3) / snake_block) * snake_block
+        self.y = round(random.randrange(snake_block * 2, display_height - snake_block * 3) / snake_block) * snake_block
 
 # 显示得分
 def your_score(score):
     value = score_font.render("score: " + str(score), True, black)
     dis.blit(value, [0, 0])
-
 
 # 显示游戏时间
 def display_game_time(game_time):
@@ -349,7 +415,8 @@ def init_game():
         obstacles.append(obstacle)
     food = Food()
     food.respawn([obstacle for obstacle in obstacles], snake.body)
-    return snake, obstacles, food, pygame.time.get_ticks(), 0, 0
+    current_ticks = pygame.time.get_ticks()
+    return snake, obstacles, food, pygame.time.get_ticks(), 0, 0, current_ticks
 
 game_active = True
 
@@ -415,14 +482,33 @@ def main():
     show_start_screen()
 
     # 初始化游戏
-    snake, obstacles, food, start_ticks, final_score, final_time = init_game()
+    snake, obstacles, food, start_ticks, final_score, final_time, last_obstacle_refresh = init_game()
 
     # 开始播放背景音乐
     if background_music:
         pygame.mixer.music.load(background_music)
         pygame.mixer.music.play(-1)
 
+    last_obstacle_refresh = pygame.time.get_ticks()
+
     while True:
+        current_time = pygame.time.get_ticks()
+
+        if current_time - last_obstacle_refresh > 10000:
+            snake_head = snake.body[-1]
+            snake_dir = snake.current_direction()
+            for obstacle in obstacles:
+                obstacle.respawn(
+                    snake_head=snake_head,
+                    snake_direction=snake_dir,
+                    obstacles=obstacles,
+                    snake_body=snake.body,
+                    food_position=[food.x, food.y]
+                )
+            last_obstacle_refresh = current_time
+            # 添加刷新提示
+            pygame.mixer.Sound.play(button_click_sound)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
