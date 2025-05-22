@@ -52,10 +52,11 @@ except:
     background_music = None
 
 #载入背景图和半透明覆盖层
-background = pygame.image.load('pictures/background/bgd5/bgd5_alpha.png').convert_alpha()
-#background = pygame.image.load('pictures/background/bgd2/bg2_ori._alpha.png').convert_alpha()
+background1 = pygame.image.load('pictures/background/bgd2/bg2_ori._alpha.png').convert_alpha()
+background2 = pygame.image.load('pictures/background/bgd5/bgd5_alpha.png').convert_alpha()
 #background = pygame.image.load('pictures/background/bgd1/backgrs_alpha.jpg').convert_alpha()
-background = pygame.transform.scale(background, (display_width, display_height))
+background1 = pygame.transform.scale(background1, (display_width, display_height))
+background2 = pygame.transform.scale(background2, (display_width, display_height))
 #overlay = pygame.Surface((display_width, display_height), pygame.SRCALPHA)
 #overlay.fill((255, 255, 255, 200))
 
@@ -193,14 +194,21 @@ class Food:
         self.x = 0
         self.y = 0
         self.position = [self.x, self.y]
+        self.is_big_reward = False  # 是否是大奖励
+        self.big_reward_multiplier = 3  # 大奖励的分数倍数
 
-        #加载Food图片
-        self.image = pygame.image.load('pictures/food/food.png').convert_alpha()
-        self.image = pygame.transform.scale(self.image, (snake_block, snake_block))
+        #加载Food以及分数奖励图片
+        self.normal_image = pygame.image.load('pictures/food/food.png').convert_alpha()
+        self.big_image = pygame.image.load('pictures/food/big_food.jpg').convert_alpha()
+        self.normal_image = pygame.transform.scale(self.normal_image, (snake_block, snake_block))
+        self.big_image = pygame.transform.scale(self.big_image, (snake_block*1.5, snake_block*1.5))
 
         self.respawn()
 
-    def respawn(self, obstacles=None, snake_body=None):
+    def respawn(self, obstacles=None, snake_body=None,score=0):
+        # 检查是否应该生成大奖励(每10分一个阶段)
+        self.is_big_reward = score > 0 and score % 10 == 0
+
         # 随机生成食物位置
         self.x = round(random.randrange(0, display_width - snake_block) / snake_block) * snake_block
         self.y = round(random.randrange(0, display_height - snake_block) / snake_block) * snake_block
@@ -226,9 +234,14 @@ class Food:
                     break
 
     def draw(self):
-        # 绘制食物
-        dis.blit(self.image, (self.x, self.y))
-        #pygame.draw.rect(dis, red, [self.x, self.y, snake_block, snake_block])
+        # 根据食物类型绘制不同图像
+        if self.is_big_reward:
+            # 大奖励食物会闪烁以吸引注意
+            if pygame.time.get_ticks() % 500 < 250:  # 每500ms闪烁一次
+                dis.blit(self.big_image, (self.x - snake_block * 0.25, self.y - snake_block * 0.25))  # 居中显示
+        else:
+            dis.blit(self.normal_image, (self.x, self.y))
+        # pygame.draw.rect(dis, red, [self.x, self.y, snake_block, snake_block])
 
 
 # 障碍物类
@@ -353,7 +366,7 @@ def message(msg, color):
 
 # 绘制开始按钮
 def draw_start_button(mouse_pos=None):
-    button_rect = pygame.Rect(display_width // 2 - 100, display_height // 2 + 50, 200, 60)
+    button_rect = pygame.Rect(display_width // 2 - 100, display_height // 2 + 100, 200, 60)
 
     # 检查鼠标是否悬停在按钮上
     if mouse_pos and button_rect.collidepoint(mouse_pos):
@@ -379,15 +392,16 @@ def show_start_screen():
     while waiting:
         mouse_pos = pygame.mouse.get_pos()  # 获取鼠标位置
         dis.fill(white)
+        dis.blit(background1, (0, 0))
 
         # 绘制游戏标题
         title_text = title_font.render("SNAKE GAME", True, blue)
-        title_rect = title_text.get_rect(center=(display_width // 2, display_height // 4))
+        title_rect = title_text.get_rect(center=(display_width // 2, display_height // 2 - 50))
         dis.blit(title_text, title_rect)
 
         # 绘制提示信息
         hint_text = font_style.render("Press S or click the button to start the game.", True, black)
-        hint_rect = hint_text.get_rect(center=(display_width // 2, display_height // 2 - 20))
+        hint_rect = hint_text.get_rect(center=(display_width // 2, display_height // 2 + 40))
         dis.blit(hint_text, hint_rect)
 
         # 绘制开始按钮（传递鼠标位置）
@@ -558,7 +572,7 @@ def main():
 
             # 清空屏幕,绘制背景图
             dis.fill(white)
-            dis.blit(background, (0, 0))
+            dis.blit(background1, (0, 0))
             # dis.blit(overlay, (0, 0))
 
             # 绘制食物
@@ -578,14 +592,29 @@ def main():
             display_game_time(seconds_elapsed)
 
             # 检查是否吃到食物
-            collision_result = snake.check_collision_with_food(food)  # 先保存结果
-            if collision_result:  # 使用保存的结果
-                print("调试: 检测到碰撞!")  # 确认此行是否执行
-                eat_sound.play()  # 播放吃食物音效
-                # 生成新的食物位置
-                food.respawn([obstacle for obstacle in obstacles], snake.body)
-                # 蛇增长
-                snake.grow()
+            if snake.check_collision_with_food(food):
+                eat_sound.play()
+
+                # 根据食物类型计算增长长度
+                if food.is_big_reward:
+                    growth = food.big_reward_multiplier  # 大奖励增长3节
+
+                else:
+                    growth = 1  # 普通食物增长1节
+
+                for _ in range(growth):
+                    snake.grow()
+
+                # 生成新食物时传入当前分数
+                food.respawn(obstacles, snake.body, current_score + growth)  # +growth因为分数即将增加
+            # collision_result = snake.check_collision_with_food(food)  # 先保存结果
+            # if collision_result:  # 使用保存的结果
+            #    print("调试: 检测到碰撞!")  # 确认此行是否执行
+            #    eat_sound.play()  # 播放吃食物音效
+            # 生成新的食物位置
+            #    food.respawn([obstacle for obstacle in obstacles], snake.body)
+            # 蛇增长
+            #    snake.grow()
 
             # 检查是否撞到自己
             if snake.check_collision_with_self():
@@ -612,7 +641,7 @@ def main():
         else:
             action = end_game(final_score, final_time)
             if action == "restart":
-                snake, obstacles, food, start_ticks, final_score, final_time = init_game()
+                snake, obstacles, food, start_ticks, final_score, final_time, last_obstacle_refresh = init_game()
                 game_active = True
                 if background_music:
                     pygame.mixer.music.play(-1)
