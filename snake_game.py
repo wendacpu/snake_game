@@ -76,6 +76,10 @@ class Snake:
         self.head.append(y)
         self.body.append(self.head.copy())
 
+        # 添加无敌时间
+        self.invincible_start_time = pygame.time.get_ticks()
+        self.invincible_duration = 2000
+
         #加载图片
         self.head_img = pygame.image.load('pictures/Snake_head/Snake_head6.png').convert_alpha()
         self.body_img = pygame.image.load('pictures/Snake_body/Snake_body1.png').convert_alpha()
@@ -168,6 +172,9 @@ class Snake:
         #return self.head == obstacle.position
         head_rect = pygame.Rect(self.head[0], self.head[1],snake_block, snake_block)
         obstacle_rect = obstacle.get_rect()
+        # 无敌时间判断
+        if pygame.time.get_ticks() - self.invincible_start_time < self.invincible_duration:
+            return False
         return head_rect.colliderect(obstacle_rect)
 
 
