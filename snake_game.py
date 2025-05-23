@@ -28,6 +28,7 @@ snake_speed = 8  # 降低速度，使游戏更容易控制
 
 # 设置字体
 font_name = pygame.font.match_font('Pristina')
+font_title = pygame.font.Font("Songti.ttc", 36)
 font_style = pygame.font.SysFont("bahnschrift", 25)
 score_font = pygame.font.SysFont("comicsansms", 35)
 title_font = pygame.font.SysFont("bahnschrift", 70)
@@ -54,9 +55,11 @@ except:
 #载入背景图和半透明覆盖层
 background1 = pygame.image.load('pictures/background/bgd2/bg2_ori._alpha.png').convert_alpha()
 background2 = pygame.image.load('pictures/background/bgd5/bgd5_alpha.png').convert_alpha()
+background3 = pygame.image.load('pictures/background/bgd3/bgd3_alpha.png').convert_alpha()
 #background = pygame.image.load('pictures/background/bgd1/backgrs_alpha.jpg').convert_alpha()
 background1 = pygame.transform.scale(background1, (display_width, display_height))
 background2 = pygame.transform.scale(background2, (display_width, display_height))
+background3 = pygame.transform.scale(background3, (display_width, display_height))
 #overlay = pygame.Surface((display_width, display_height), pygame.SRCALPHA)
 #overlay.fill((255, 255, 255, 200))
 
@@ -395,7 +398,7 @@ def show_start_screen():
         dis.blit(background1, (0, 0))
 
         # 绘制游戏标题
-        title_text = title_font.render("SNAKE GAME", True, blue)
+        title_text = font_title.render("爱吃樱花的珞珈小蛇", True, red)
         title_rect = title_text.get_rect(center=(display_width // 2, display_height // 2 - 50))
         dis.blit(title_text, title_rect)
 
@@ -448,6 +451,7 @@ def end_game(final_score, final_time):
     game_over_sound.play()  # 播放游戏结束部分音效
     while True:
         dis.fill(white)
+        dis.blit(background3, (0, 0))
 
         game_font_over = pygame.font.Font(font_name, 50)
         game_font_restart = pygame.font.Font(font_name, 30)
@@ -572,7 +576,7 @@ def main():
 
             # 清空屏幕,绘制背景图
             dis.fill(white)
-            dis.blit(background1, (0, 0))
+            dis.blit(background2, (0, 0))
             # dis.blit(overlay, (0, 0))
 
             # 绘制食物
