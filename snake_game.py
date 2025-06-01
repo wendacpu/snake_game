@@ -36,12 +36,12 @@ button_font = pygame.font.SysFont("bahnschrift", 40)
 
 # 加载音效文件
 try:
-    eat_sound = pygame.mixer.Sound(r'eat.mp3')  # 吃食物音效
-    crash_sound = pygame.mixer.Sound(r'crash.mp3')  # 碰撞音效
-    start_sound = pygame.mixer.Sound(r'start.wav')  # 开始游戏音效
-    game_over_sound = pygame.mixer.Sound(r'game_over.wav')  # 结束游戏音效
-    button_click_sound = pygame.mixer.Sound(r'click.wav')  # 按钮点击音效
-    background_music = r'bg.wav'  # 背景音乐
+    eat_sound = pygame.mixer.Sound(r'music/eat.mp3')  # 吃食物音效
+    crash_sound = pygame.mixer.Sound(r'music/crash.mp3')  # 碰撞音效
+    start_sound = pygame.mixer.Sound(r'music/start.wav')  # 开始游戏音效
+    game_over_sound = pygame.mixer.Sound(r'music/game_over.wav')  # 结束游戏音效
+    button_click_sound = pygame.mixer.Sound(r'music/click.wav')  # 按钮点击音效
+    background_music = r'music/bg.wav'  # 背景音乐
 except:
     print("警告: 未能加载所有音效文件，游戏将继续但没有音效")
     # 创建空音效对象以避免报错
